@@ -24,11 +24,25 @@ export async function POST(req: NextRequest) {
   const rows = parsed.data.map(r => {
     const get = (...keys: string[]) =>
       keys.map(k => r[k] ?? r[k.toLowerCase()] ?? '').find(v => v !== '') ?? ''
+
+    // Strip $ and commas (Apple Numbers exports odometer with commas, cost with $)
+    const clean = (v: string) => v.replace(/[$,]/g, '').trim()
+
+    // Normalise date to YYYY-MM-DD (handles both "Jun 8, 2012" and "2012-06-08")
+    const rawDate = get('Date')
+    let isoDate = ''
+    if (rawDate) {
+      const d = new Date(rawDate)
+      if (!isNaN(d.getTime())) {
+        isoDate = d.toISOString().split('T')[0]
+      }
+    }
+
     return {
-      date:     get('Date'),
-      odometer: get('Odometer'),
-      cost:     get('Cost'),
-      gallons:  get('Gallons'),
+      date:     isoDate,
+      odometer: clean(get('Odometer')),
+      cost:     clean(get('Cost')),
+      gallons:  clean(get('Gallons')),
     }
   }).filter(r => r.date && r.odometer)
 
@@ -37,19 +51,28 @@ export async function POST(req: NextRequest) {
 
   // Load existing (date+odometer) pairs for dedup check
   const existing = await db.select({ date: fillups.date, odometer: fillups.odometer }).from(fillups)
-  const existingSet = new Set(existing.map(e => `${e.date}|${e.odometer}`))
+  const existingSet = new Set(existing.map(e => `${e.date}|${String(Number(e.odometer))}`))
 
   let inserted = 0
   let skipped  = 0
   let prevOdo: number | null = null
 
   for (const row of rows) {
-    const key = `${row.date}|${row.odometer}`
-    if (existingSet.has(key)) { skipped++; continue }
-
     const odo  = Number(row.odometer)
     const cost = Number(row.cost)
     const gal  = Number(row.gallons)
+
+    // Odometer-only row (no fuel data) — use as starting point for mileage calc, don't insert
+    if (!row.cost && !row.gallons && odo > 0) {
+      prevOdo = odo
+      continue
+    }
+
+    if (isNaN(odo) || isNaN(cost) || isNaN(gal) || odo <= 0 || gal <= 0) { skipped++; continue }
+
+    const key = `${row.date}|${String(odo)}`
+    if (existingSet.has(key)) { skipped++; continue }
+
     const derived = calcDerived(prevOdo, odo, cost, gal)
 
     await db.insert(fillups).values({
