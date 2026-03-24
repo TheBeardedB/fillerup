@@ -1,0 +1,30 @@
+name: Build Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+        env:
+          # Build-time env vars — dummy values are sufficient for type checking
+          DATABASE_URL: postgresql://user:pass@localhost:5432/db
+          NEXTAUTH_SECRET: build-check-secret
+          NEXTAUTH_URL: http://localhost:3000
+          GITHUB_ID: build-check
+          GITHUB_SECRET: build-check
+          ALLOWED_GITHUB_EMAIL: build@example.com
+          LICENSE_PLATE_KEY: 0000000000000000000000000000000000000000000000000000000000000000
