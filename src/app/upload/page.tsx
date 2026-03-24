@@ -59,6 +59,7 @@ export default function UploadPage() {
       const j = await res.json()
       if (!res.ok) throw new Error(j.error ?? 'Import failed')
       setResult(j)
+      if (j.inserted > 0) setTimeout(() => router.push('/'), 1500)
     } catch (err: any) {
       setError(err.message)
     } finally {
