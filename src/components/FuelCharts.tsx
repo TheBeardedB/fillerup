@@ -27,11 +27,11 @@ function avg(data: Fillup[], key: keyof Fillup) {
   return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
 }
 
-function CustomTooltip({ active, payload, label, unit, decimals }: any) {
+function CustomTooltip({ active, payload, unit, decimals }: any) {
   if (!active || !payload?.length) return null
   return (
     <div className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm shadow-xl">
-      <p className="text-gray-400 mb-1">{label}</p>
+      <p className="text-gray-400 mb-1">{payload[0]?.payload?.dateLabel}</p>
       <p className="font-semibold text-white">
         {Number(payload[0].value).toFixed(decimals)} {unit}
       </p>
@@ -80,7 +80,6 @@ export function FuelCharts({ data }: Props) {
                 />
                 <Tooltip
                   content={<CustomTooltip unit={unit} decimals={decimals} />}
-                  labelKey="dateLabel"
                 />
                 {average != null && (
                   <ReferenceLine
