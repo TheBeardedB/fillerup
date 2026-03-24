@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import type { Fillup } from '@/db/schema'
+import type { Fillup, Vehicle } from '@/db/schema'
 import { FuelCharts } from './FuelCharts'
 import { FillupTable } from './FillupTable'
 import { StatCards } from './StatCards'
@@ -9,17 +9,30 @@ import { format, parseISO } from 'date-fns'
 
 interface Props {
   data: Fillup[]
-  isAuthed: boolean
+  vehicles: Vehicle[]
 }
 
-export function Dashboard({ data, isAuthed }: Props) {
+export function Dashboard({ data, vehicles }: Props) {
   const [tab, setTab] = useState<'charts' | 'table'>('charts')
 
-  const first = data[0]
-  const last  = data[data.length - 1]
+  const activeVehicle = vehicles.find(v => v.isActive) ?? vehicles[0] ?? null
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(activeVehicle?.id ?? null)
+
+  const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId) ?? null
+
+  const filteredData = selectedVehicleId != null
+    ? data.filter(d => d.vehicleId === selectedVehicleId)
+    : data
+
+  const first = filteredData[0]
+  const last  = filteredData[filteredData.length - 1]
   const totalMiles = last && first
     ? Number(last.odometer) - Number(first.odometer)
     : null
+
+  const heroTitle = selectedVehicle
+    ? [selectedVehicle.year, selectedVehicle.make, selectedVehicle.model].filter(Boolean).join(' ') || selectedVehicle.name
+    : 'All Vehicles'
 
   return (
     <div className="space-y-8">
@@ -41,14 +54,14 @@ export function Dashboard({ data, isAuthed }: Props) {
         <div className="relative flex flex-col sm:flex-row sm:items-end justify-between gap-6">
           <div>
             <p className="font-condensed text-xs tracking-[0.3em] uppercase text-red-500 mb-2">
-              2012 Suzuki Equator
+              {heroTitle}
             </p>
             <h1 className="font-display text-6xl sm:text-8xl tracking-widest text-white leading-none">
               FILL<br />
               <span className="text-red-600">&apos;ER</span> UP
             </h1>
             <p className="font-condensed text-sm tracking-widest text-gray-500 mt-3 uppercase">
-              {data.length} fill-ups
+              {filteredData.length} fill-ups
               {totalMiles != null && (
                 <> &nbsp;·&nbsp; {totalMiles.toLocaleString()} miles tracked</>
               )}
@@ -59,11 +72,31 @@ export function Dashboard({ data, isAuthed }: Props) {
           </div>
 
           {/* Big MPG stat */}
-          <MpgMeter data={data} />
+          <MpgMeter data={filteredData} />
         </div>
       </div>
 
-      <StatCards data={data} />
+      {/* Vehicle selector */}
+      {vehicles.length > 1 && (
+        <div className="flex flex-wrap gap-2">
+          {vehicles.map(v => (
+            <button
+              key={v.id}
+              onClick={() => setSelectedVehicleId(v.id)}
+              className={`font-condensed text-sm tracking-widest uppercase px-4 py-2 rounded-xl border transition-colors ${
+                selectedVehicleId === v.id
+                  ? 'bg-red-700/30 border-red-700 text-white'
+                  : 'border-[#1e1e2e] text-gray-500 hover:text-white hover:border-gray-600'
+              }`}
+            >
+              {v.name}
+              {v.isActive && <span className="ml-1.5 text-red-500">·</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <StatCards data={filteredData} />
 
       {/* Tab switcher */}
       <div className="flex items-center gap-2 border-b border-[#1e1e2e] pb-0">
@@ -75,7 +108,7 @@ export function Dashboard({ data, isAuthed }: Props) {
         </TabBtn>
       </div>
 
-      {tab === 'charts' ? <FuelCharts data={data} /> : <FillupTable data={data} />}
+      {tab === 'charts' ? <FuelCharts data={filteredData} /> : <FillupTable data={filteredData} />}
     </div>
   )
 }

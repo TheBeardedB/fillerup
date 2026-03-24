@@ -1,0 +1,1 @@
+ALTER TABLE "vehicles" ALTER COLUMN "license_plate" SET DATA TYPE varchar(200);

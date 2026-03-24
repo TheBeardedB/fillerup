@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { db } from '@/db'
-import { fillups } from '@/db/schema'
-import { and, eq } from 'drizzle-orm'
+import { fillups, vehicles } from '@/db/schema'
+import { eq, desc } from 'drizzle-orm'
 import { calcDerived } from '@/lib/utils'
 import Papa from 'papaparse'
 
@@ -11,8 +11,15 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { csv } = await req.json()
+  const { csv, vehicleId: bodyVehicleId } = await req.json()
   if (!csv) return NextResponse.json({ error: 'No CSV provided' }, { status: 400 })
+
+  // Resolve vehicleId
+  let vehicleId: number | null = bodyVehicleId ?? null
+  if (vehicleId == null) {
+    const active = await db.select({ id: vehicles.id }).from(vehicles).where(eq(vehicles.isActive, true)).limit(1)
+    vehicleId = active[0]?.id ?? null
+  }
 
   const parsed = Papa.parse<Record<string, string>>(csv, {
     header: true,
@@ -20,7 +27,6 @@ export async function POST(req: NextRequest) {
     transformHeader: h => h.trim(),
   })
 
-  // Normalise header variants from the Numbers export
   const rows = parsed.data.map(r => {
     const get = (...keys: string[]) =>
       keys.map(k => r[k] ?? r[k.toLowerCase()] ?? '').find(v => v !== '') ?? ''
@@ -46,10 +52,8 @@ export async function POST(req: NextRequest) {
     }
   }).filter(r => r.date && r.odometer)
 
-  // Sort ascending so we can compute running previous odometer
   rows.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
-  // Load existing (date+odometer) pairs for dedup check
   const existing = await db.select({ date: fillups.date, odometer: fillups.odometer }).from(fillups)
   const existingSet = new Set(existing.map(e => `${e.date}|${String(Number(e.odometer))}`))
 
@@ -76,6 +80,7 @@ export async function POST(req: NextRequest) {
     const derived = calcDerived(prevOdo, odo, cost, gal)
 
     await db.insert(fillups).values({
+      vehicleId,
       date:           row.date,
       odometer:       String(odo),
       cost:           String(cost),

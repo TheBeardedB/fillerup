@@ -29,11 +29,12 @@ export function Nav() {
           </Link>
 
           <div className="hidden sm:flex items-center gap-1">
-            <NavLink href="/"       active={path === '/'}>Dashboard</NavLink>
+            <NavLink href="/"        active={path === '/'}>Dashboard</NavLink>
             {session && (
               <>
-                <NavLink href="/entry"  active={path === '/entry'}>Add Fill-Up</NavLink>
-                <NavLink href="/upload" active={path === '/upload'}>Import CSV</NavLink>
+                <NavLink href="/entry"   active={path === '/entry'}>Add Fill-Up</NavLink>
+                <NavLink href="/garage"  active={path === '/garage'}>Garage</NavLink>
+                <NavLink href="/upload"  active={path === '/upload'}>Import CSV</NavLink>
               </>
             )}
           </div>
@@ -44,7 +45,10 @@ export function Nav() {
           <div className="flex sm:hidden items-center gap-1">
             <NavLink href="/"      active={path === '/'}>Home</NavLink>
             {session && (
-              <NavLink href="/entry" active={path === '/entry'}>Add</NavLink>
+              <>
+                <NavLink href="/entry"  active={path === '/entry'}>Add</NavLink>
+                <NavLink href="/garage" active={path === '/garage'}>Garage</NavLink>
+              </>
             )}
           </div>
 
