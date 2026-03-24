@@ -6,7 +6,7 @@ import {
 import { format, parseISO } from 'date-fns'
 import type { Fillup } from '@/db/schema'
 
-interface Props { data: Fillup[] }
+interface Props { data: Fillup[]; chartHeight?: number }
 
 const CHARTS: {
   key:   keyof Fillup
@@ -39,7 +39,7 @@ function CustomTooltip({ active, payload, unit, decimals }: any) {
   )
 }
 
-export function FuelCharts({ data }: Props) {
+export function FuelCharts({ data, chartHeight = 200 }: Props) {
   const chartData = data
     .filter(d => d.date)
     .map(d => ({
@@ -68,7 +68,7 @@ export function FuelCharts({ data }: Props) {
                 </span>
               )}
             </div>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
               <LineChart data={chartData} margin={{ top: 4, right: 12, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
                 <XAxis

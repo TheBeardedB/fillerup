@@ -6,39 +6,38 @@ interface Props { data: Fillup[] }
 
 export function StatCards({ data }: Props) {
   const valid = (v: unknown) => { const n = Number(v); return v != null && v !== '' && !isNaN(n) && isFinite(n) && n > 0 }
-  const withMpg  = data.map(d => Number(d.milesPerGallon)).filter(valid)
-  const withCpg  = data.map(d => Number(d.dolPerGallon)).filter(valid)
-  const withCost = data.map(d => Number(d.cost)).filter(valid)
-  const withGal  = data.map(d => Number(d.gallons)).filter(valid)
+  const withMpg   = data.map(d => Number(d.milesPerGallon)).filter(valid)
+  const withCpg   = data.map(d => Number(d.dolPerGallon)).filter(valid)
+  const withCost  = data.map(d => Number(d.cost)).filter(valid)
+  const withMiles = data.map(d => Number(d.milesTravelled)).filter(valid)
 
   const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
-  const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0)
 
-  const last = data[data.length - 1]
-
-  const minCpg  = withCpg.length  ? Math.min(...withCpg)  : null
-  const maxCost = withCost.length ? Math.max(...withCost) : null
+  const avgMpg   = avg(withMpg)
+  const avgCpg   = avg(withCpg)
+  const avgCost  = avg(withCost)
+  const avgMiles = avg(withMiles)
 
   const stats = [
     {
-      label: 'Total Spent',
-      value: `$${sum(withCost).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      sub: `${sum(withGal).toLocaleString('en-US', { maximumFractionDigits: 0 })} gal total`,
+      label: 'Avg MPG',
+      value: avgMpg  != null ? avgMpg.toFixed(1)  : '—',
+      sub:   withMpg.length ? `${withMpg.length} fill-ups` : '',
     },
     {
       label: 'Avg $/Gallon',
-      value: fmtCurrency(avg(withCpg)),
-      sub: minCpg != null ? `best ${fmtCurrency(minCpg)}` : '',
+      value: fmtCurrency(avgCpg),
+      sub:   withCpg.length  ? `best ${fmtCurrency(Math.min(...withCpg))}` : '',
     },
     {
       label: 'Avg Fill Cost',
-      value: fmtCurrency(avg(withCost)),
-      sub: maxCost != null ? `max ${fmtCurrency(maxCost)}` : '',
+      value: fmtCurrency(avgCost),
+      sub:   withCost.length ? `max ${fmtCurrency(Math.max(...withCost))}` : '',
     },
     {
-      label: 'Current Odometer',
-      value: last ? `${Number(last.odometer).toLocaleString()}` : '—',
-      sub: 'miles',
+      label: 'Avg Miles / Fill',
+      value: avgMiles != null ? avgMiles.toFixed(0) : '—',
+      sub:   withMiles.length ? `max ${Math.max(...withMiles).toFixed(0)} mi` : '',
     },
   ]
 
