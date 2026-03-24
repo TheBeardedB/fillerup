@@ -15,6 +15,20 @@
       "when": 1774324148707,
       "tag": "0001_condemned_misty_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774325617253,
+      "tag": "0002_cynical_molecule_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774325767375,
+      "tag": "0003_marvelous_the_initiative",
+      "breakpoints": true
     }
   ]
 }

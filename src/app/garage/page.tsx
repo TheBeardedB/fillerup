@@ -10,11 +10,13 @@ interface Vehicle {
   make: string | null
   model: string | null
   color: string | null
+  licensePlate: true | null  // API never returns the real value
+  initialMileage: number | null
   isActive: boolean
   fillupCount: number
 }
 
-const emptyForm = { name: '', year: '', make: '', model: '', color: '' }
+const emptyForm = { name: '', year: '', make: '', model: '', color: '', licensePlate: '', initialMileage: '' }
 
 export default function GaragePage() {
   const { data: session, status } = useSession()
@@ -29,6 +31,20 @@ export default function GaragePage() {
   const [editForm, setEditForm] = useState(emptyForm)
   const [saving, setSaving]     = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
+  const [revealedPlates, setRevealedPlates] = useState<Record<number, string>>({})
+  const [revealingId, setRevealingId] = useState<number | null>(null)
+
+  async function revealPlate(id: number) {
+    if (revealedPlates[id]) { setRevealedPlates(p => { const n = { ...p }; delete n[id]; return n }); return }
+    setRevealingId(id)
+    try {
+      const res = await fetch(`/api/vehicles/${id}/license-plate`)
+      const { plate } = await res.json()
+      if (plate) setRevealedPlates(p => ({ ...p, [id]: plate }))
+    } finally {
+      setRevealingId(null)
+    }
+  }
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -167,8 +183,24 @@ export default function GaragePage() {
                   <div className="font-condensed text-xs text-gray-500 tracking-wider">
                     {[v.year, v.make, v.model, v.color].filter(Boolean).join(' · ')}
                   </div>
-                  <div className="font-condensed text-xs text-gray-600 mt-1">
-                    {v.fillupCount} fill-up{v.fillupCount !== 1 ? 's' : ''}
+                  <div className="font-condensed text-xs text-gray-600 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    {v.licensePlate && (
+                      <span className="flex items-center gap-1.5">
+                        {revealedPlates[v.id]
+                          ? <span className="text-gray-300">{revealedPlates[v.id]}</span>
+                          : <span>••• ••••</span>
+                        }
+                        <button
+                          onClick={() => revealPlate(v.id)}
+                          disabled={revealingId === v.id}
+                          className="text-gray-500 hover:text-white transition-colors underline underline-offset-2"
+                        >
+                          {revealingId === v.id ? '…' : revealedPlates[v.id] ? 'hide' : 'show'}
+                        </button>
+                      </span>
+                    )}
+                    {v.initialMileage != null && <span>started at {v.initialMileage.toLocaleString()} mi</span>}
+                    <span>{v.fillupCount} fill-up{v.fillupCount !== 1 ? 's' : ''}</span>
                   </div>
                 </div>
 
@@ -182,7 +214,7 @@ export default function GaragePage() {
                     </button>
                   )}
                   <button
-                    onClick={() => { setEditId(v.id); setEditForm({ name: v.name, year: v.year?.toString() ?? '', make: v.make ?? '', model: v.model ?? '', color: v.color ?? '' }) }}
+                    onClick={() => { setEditId(v.id); setEditForm({ name: v.name, year: v.year?.toString() ?? '', make: v.make ?? '', model: v.model ?? '', color: v.color ?? '', licensePlate: v.licensePlate ?? '', initialMileage: v.initialMileage?.toString() ?? '' }) }}
                     className="font-condensed text-xs tracking-widest uppercase text-gray-500 hover:text-white border border-[#1e1e2e] hover:border-gray-600 rounded-lg px-3 py-1.5 transition-colors"
                   >
                     Edit
@@ -246,6 +278,14 @@ function VehicleFormFields({ form, setForm }: {
       <div>
         <label className="font-condensed text-xs tracking-[0.2em] uppercase text-gray-500 block mb-1">Model</label>
         <input value={form.model} onChange={e => setForm(f => ({ ...f, model: e.target.value }))} placeholder="Equator" className={inputCls} />
+      </div>
+      <div>
+        <label className="font-condensed text-xs tracking-[0.2em] uppercase text-gray-500 block mb-1">License Plate</label>
+        <input value={form.licensePlate} onChange={e => setForm(f => ({ ...f, licensePlate: e.target.value }))} placeholder="e.g. ABC-1234" className={inputCls} />
+      </div>
+      <div>
+        <label className="font-condensed text-xs tracking-[0.2em] uppercase text-gray-500 block mb-1">Initial Mileage</label>
+        <input value={form.initialMileage} onChange={e => setForm(f => ({ ...f, initialMileage: e.target.value }))} placeholder="e.g. 35" type="number" className={inputCls} />
       </div>
     </div>
   )

@@ -6,8 +6,10 @@ export const vehicles = pgTable('vehicles', {
   year:      integer('year'),
   make:      varchar('make', { length: 50 }),
   model:     varchar('model', { length: 50 }),
-  color:     varchar('color', { length: 50 }),
-  isActive:  boolean('is_active').default(false).notNull(),
+  color:          varchar('color', { length: 50 }),
+  licensePlate:   varchar('license_plate', { length: 200 }),
+  initialMileage: integer('initial_mileage'),
+  isActive:       boolean('is_active').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
