@@ -11,17 +11,16 @@ export default function EntryPage() {
 
   const today = format(new Date(), 'yyyy-MM-dd')
 
-  const [form, setForm] = useState({ date: today, odometer: '', cost: '', gallons: '' })
-  const [prevOdo, setPrevOdo] = useState<number | null>(null)
+  const [form, setForm]         = useState({ date: today, odometer: '', cost: '', gallons: '' })
+  const [prevOdo, setPrevOdo]   = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [error, setError] = useState('')
+  const [success, setSuccess]   = useState(false)
+  const [error, setError]       = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
 
-  // Fetch latest odometer for derived field preview
   useEffect(() => {
     fetch('/api/fillups?latest=1')
       .then(r => r.json())
@@ -33,6 +32,7 @@ export default function EntryPage() {
   const cost = Number(form.cost)
   const gal  = Number(form.gallons)
   const derived = calcDerived(prevOdo, odo, cost, gal)
+  const showPreview = odo > 0 && cost > 0 && gal > 0
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -62,9 +62,14 @@ export default function EntryPage() {
 
   return (
     <div className="max-w-md mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">New Fill-Up</h1>
+      <div>
+        <p className="font-condensed text-xs tracking-[0.3em] uppercase text-red-500 mb-1">New Entry</p>
+        <h1 className="font-display text-5xl tracking-widest text-white">FILL UP</h1>
+      </div>
 
-      <form onSubmit={handleSubmit} className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="relative overflow-hidden bg-[#111118] border border-[#1e1e2e] rounded-2xl p-6 space-y-5">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-600/50 to-transparent" />
+
         <Field label="Date">
           <input
             type="date"
@@ -81,7 +86,7 @@ export default function EntryPage() {
             inputMode="decimal"
             value={form.odometer}
             onChange={e => setForm(f => ({ ...f, odometer: e.target.value }))}
-            placeholder="e.g. 129727"
+            placeholder={prevOdo ? `last: ${prevOdo.toLocaleString()}` : 'e.g. 129727'}
             className={inputCls}
             required
           />
@@ -114,21 +119,23 @@ export default function EntryPage() {
         </Field>
 
         {/* Live derived preview */}
-        {odo > 0 && cost > 0 && gal > 0 && (
-          <div className="grid grid-cols-3 gap-3 pt-2">
-            <Stat label="$/Gal"      value={fmtCurrency(derived.dolPerGallon)} />
-            <Stat label="Miles"      value={fmt(derived.milesTravelled, 0)} />
-            <Stat label="MPG"        value={fmt(derived.milesPerGallon)} />
+        {showPreview && (
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            <PreviewStat label="$/Gal" value={fmtCurrency(derived.dolPerGallon)} />
+            <PreviewStat label="Miles" value={fmt(derived.milesTravelled, 0)} />
+            <PreviewStat label="MPG"   value={fmt(derived.milesPerGallon)} highlight={
+              derived.milesPerGallon != null && derived.milesPerGallon > 18
+            } />
           </div>
         )}
 
-        {error   && <p className="text-red-400 text-sm">{error}</p>}
-        {success && <p className="text-green-400 text-sm">Saved!</p>}
+        {error   && <p className="font-condensed text-sm text-red-400 tracking-wide">{error}</p>}
+        {success && <p className="font-condensed text-sm text-green-400 tracking-widest uppercase">Saved!</p>}
 
         <button
           type="submit"
           disabled={submitting}
-          className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition-colors rounded-xl py-3 font-semibold"
+          className="w-full bg-red-700 hover:bg-red-600 disabled:opacity-50 transition-colors rounded-xl py-3.5 font-condensed tracking-widest uppercase text-sm font-medium"
         >
           {submitting ? 'Saving…' : 'Save Fill-Up'}
         </button>
@@ -137,22 +144,31 @@ export default function EntryPage() {
   )
 }
 
-const inputCls = 'w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
+const inputCls = [
+  'w-full bg-[#0c0c0f] border border-[#1e1e2e] rounded-xl px-4 py-3.5',
+  'font-body text-lg text-white placeholder:text-gray-700',
+  'focus:outline-none focus:border-red-800 focus:ring-1 focus:ring-red-900',
+  'transition-colors',
+].join(' ')
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1">
-      <label className="text-sm text-gray-400 font-medium">{label}</label>
+    <div className="space-y-1.5">
+      <label className="font-condensed text-xs tracking-[0.2em] uppercase text-gray-500">
+        {label}
+      </label>
       {children}
     </div>
   )
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function PreviewStat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className="bg-gray-800 rounded-xl p-3 text-center">
-      <div className="text-xs text-gray-400">{label}</div>
-      <div className="text-lg font-semibold mt-0.5">{value}</div>
+    <div className="bg-[#0c0c0f] border border-[#1e1e2e] rounded-xl p-3 text-center">
+      <div className="font-condensed text-[10px] tracking-[0.2em] uppercase text-gray-600">{label}</div>
+      <div className={`font-display text-2xl mt-0.5 tracking-wide ${highlight ? 'text-green-400' : 'text-white'}`}>
+        {value}
+      </div>
     </div>
   )
 }

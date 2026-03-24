@@ -13,14 +13,25 @@ export default function LoginPage() {
 
   return (
     <div className="flex items-center justify-center min-h-[70vh]">
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-10 w-full max-w-sm text-center space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold">Suzuki Fuel Log</h1>
-          <p className="text-gray-400 mt-1 text-sm">Sign in to add entries or upload data</p>
+      <div className="relative overflow-hidden bg-[#111118] border border-[#1e1e2e] rounded-2xl p-10 w-full max-w-sm text-center space-y-8">
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-600 to-transparent" />
+        <div className="absolute inset-0 fuel-stripe opacity-30 pointer-events-none" />
+
+        <div className="relative space-y-2">
+          <p className="font-condensed text-xs tracking-[0.3em] uppercase text-red-500">
+            Fuel Log
+          </p>
+          <h1 className="font-display text-6xl tracking-widest text-white">
+            FILL<br /><span className="text-red-600">&apos;ER</span> UP
+          </h1>
+          <p className="font-condensed text-sm text-gray-500 tracking-widest uppercase pt-1">
+            Sign in to continue
+          </p>
         </div>
+
         <button
           onClick={() => signIn('github', { callbackUrl: '/' })}
-          className="w-full flex items-center justify-center gap-3 bg-gray-800 hover:bg-gray-700 transition-colors rounded-xl px-6 py-3 font-medium"
+          className="relative w-full flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 border border-[#1e1e2e] hover:border-red-900/50 transition-all rounded-xl px-6 py-3.5 font-condensed tracking-widest uppercase text-sm"
         >
           <GithubIcon />
           Sign in with GitHub

@@ -2,10 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Barlow+Condensed:wght@500;700&display=swap');
+
 :root {
   --chart-1: #60a5fa;
   --chart-2: #f87171;
   --chart-3: #fbbf24;
   --chart-4: #34d399;
   --chart-5: #a78bfa;
+
+  --fuel-red:    #dc2626;
+  --fuel-yellow: #fbbf24;
+  --fuel-dark:   #0c0c0f;
+  --fuel-panel:  #111118;
+  --fuel-border: #1e1e2e;
+  --fuel-muted:  #6b7280;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background-color: var(--fuel-dark);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(220, 38, 38, 0.08) 0%, transparent 60%),
+    url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.015'%3E%3Cpath d='M0 0h20v20H0V0zm20 20h20v20H20V20z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  color: #e5e7eb;
+  min-height: 100vh;
+}
+
+.font-display    { font-family: 'Bebas Neue', sans-serif; }
+.font-condensed  { font-family: 'Barlow Condensed', sans-serif; }
+.font-body       { font-family: 'Barlow', sans-serif; }
+
+/* Fuel gauge decorative stripe */
+.fuel-stripe {
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 8px,
+    rgba(220, 38, 38, 0.15) 8px,
+    rgba(220, 38, 38, 0.15) 16px
+  );
 }
