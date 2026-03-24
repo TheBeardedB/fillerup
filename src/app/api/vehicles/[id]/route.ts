@@ -24,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(make           !== undefined && { make:  make  || null }),
       ...(model          !== undefined && { model: model || null }),
       ...(color          !== undefined && { color: color || null }),
-      ...(licensePlate   !== undefined && { licensePlate: licensePlate ? encryptPlate(licensePlate) : null }),
+      ...(licensePlate   !== undefined && licensePlate !== '' && { licensePlate: encryptPlate(licensePlate) }),
       ...(initialMileage !== undefined && { initialMileage: initialMileage ? Number(initialMileage) : null }),
     }).where(eq(vehicles.id, id))
   }

@@ -214,7 +214,7 @@ export default function GaragePage() {
                     </button>
                   )}
                   <button
-                    onClick={() => { setEditId(v.id); setEditForm({ name: v.name, year: v.year?.toString() ?? '', make: v.make ?? '', model: v.model ?? '', color: v.color ?? '', licensePlate: v.licensePlate ?? '', initialMileage: v.initialMileage?.toString() ?? '' }) }}
+                    onClick={() => { setEditId(v.id); setEditForm({ name: v.name, year: v.year?.toString() ?? '', make: v.make ?? '', model: v.model ?? '', color: v.color ?? '', licensePlate: '', initialMileage: v.initialMileage?.toString() ?? '' }) }}
                     className="font-condensed text-xs tracking-widest uppercase text-gray-500 hover:text-white border border-[#1e1e2e] hover:border-gray-600 rounded-lg px-3 py-1.5 transition-colors"
                   >
                     Edit
