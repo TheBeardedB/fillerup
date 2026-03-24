@@ -17,7 +17,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     await db.update(vehicles).set({ isActive: false })
     await db.update(vehicles).set({ isActive: true }).where(eq(vehicles.id, id))
   } else {
-    const { name, year, make, model, color, licensePlate, initialMileage } = body
+    const { name, year, make, model, color, licensePlate, initialMileage,
+            vehicleType, engineType, oilType, tireSize, oilFilters } = body
     await db.update(vehicles).set({
       ...(name           !== undefined && { name }),
       ...(year           !== undefined && { year: year ? Number(year) : null }),
@@ -26,6 +27,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(color          !== undefined && { color: color || null }),
       ...(licensePlate   !== undefined && licensePlate !== '' && { licensePlate: encryptPlate(licensePlate) }),
       ...(initialMileage !== undefined && { initialMileage: initialMileage ? Number(initialMileage) : null }),
+      ...(vehicleType    !== undefined && { vehicleType: vehicleType || null }),
+      ...(engineType     !== undefined && { engineType:  engineType  || null }),
+      ...(oilType        !== undefined && { oilType:     oilType     || null }),
+      ...(tireSize       !== undefined && { tireSize:    tireSize    || null }),
+      ...(oilFilters     !== undefined && { oilFilters:  oilFilters  || null }),
     }).where(eq(vehicles.id, id))
   }
 

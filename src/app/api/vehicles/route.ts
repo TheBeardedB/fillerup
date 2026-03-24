@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { name, year, make, model, color, licensePlate, initialMileage } = body
+  const { name, year, make, model, color, licensePlate, initialMileage,
+          vehicleType, engineType, oilType, tireSize, oilFilters } = body
   if (!name) return NextResponse.json({ error: 'Name required' }, { status: 400 })
 
   const existing = await db.select({ id: vehicles.id }).from(vehicles)
@@ -42,6 +43,11 @@ export async function POST(req: NextRequest) {
     color:          color          || null,
     licensePlate:   licensePlate   ? encryptPlate(licensePlate)   : null,
     initialMileage: initialMileage ? Number(initialMileage) : null,
+    vehicleType:    vehicleType    || null,
+    engineType:     engineType     || null,
+    oilType:        oilType        || null,
+    tireSize:       tireSize       || null,
+    oilFilters:     oilFilters     || null,
     isActive: isFirst,
   }).returning()
 

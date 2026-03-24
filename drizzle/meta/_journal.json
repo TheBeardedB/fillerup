@@ -29,6 +29,20 @@
       "when": 1774325767375,
       "tag": "0003_marvelous_the_initiative",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1742860800000,
+      "tag": "0004_vehicle_specs",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1742947200000,
+      "tag": "0005_maintenance",
+      "breakpoints": true
     }
   ]
 }
