@@ -1,6 +1,6 @@
-# Suzuki Fuel Log
+# Fuel Log
 
-Next.js fuel economy tracker for the Suzuki Equator. Public dashboard with charts and table, protected entry form and CSV import. GitHub OAuth single-user auth.
+Next.js fuel economy tracker. Public dashboard with charts and table, protected entry form and CSV import. GitHub OAuth single-user auth.
 
 ---
 
