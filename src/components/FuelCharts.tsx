@@ -78,6 +78,7 @@ export function FuelCharts({ data, chartHeight = 200 }: Props) {
                   interval="preserveStartEnd"
                 />
                 <YAxis
+                  domain={['auto', 'auto']}
                   tick={{ fill: '#6b7280', fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
