@@ -44,6 +44,12 @@ export function FuelCharts({ data }: Props) {
     .filter(d => d.date)
     .map(d => ({
       ...d,
+      // Coerce numeric DB strings to numbers so recharts scales the Y axis correctly
+      milesPerGallon: d.milesPerGallon != null ? Number(d.milesPerGallon) : null,
+      dolPerGallon:   d.dolPerGallon   != null ? Number(d.dolPerGallon)   : null,
+      cost:           d.cost           != null ? Number(d.cost)           : null,
+      gallons:        d.gallons        != null ? Number(d.gallons)        : null,
+      milesTravelled: d.milesTravelled != null ? Number(d.milesTravelled) : null,
       dateLabel: format(parseISO(d.date as string), 'MMM d, yyyy'),
       dateShort: format(parseISO(d.date as string), 'yyyy'),
     }))

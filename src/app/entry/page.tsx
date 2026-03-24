@@ -68,7 +68,7 @@ export default function EntryPage() {
       }
       setSuccess(true)
       setForm({ date: today, odometer: '', cost: '', gallons: '' })
-      setTimeout(() => setSuccess(false), 3000)
+      setTimeout(() => router.push('/'), 1500)
     } catch (err: any) {
       setError(err.message)
     } finally {

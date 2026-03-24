@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import type { Fillup, Vehicle } from '@/db/schema'
 import { FuelCharts } from './FuelCharts'
 import { FillupTable } from './FillupTable'
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function Dashboard({ data, vehicles }: Props) {
+  const { data: session } = useSession()
   const [tab, setTab] = useState<'charts' | 'table'>('charts')
 
   const activeVehicle = vehicles.find(v => v.isActive) ?? vehicles[0] ?? null
@@ -37,13 +39,15 @@ export function Dashboard({ data, vehicles }: Props) {
   return (
     <div className="space-y-8">
 
-      {/* Mobile: full-screen New Fill button */}
-      <Link
-        href="/entry"
-        className="sm:hidden flex items-center justify-center w-full h-40 rounded-2xl bg-red-600 hover:bg-red-500 active:bg-red-700 transition-colors"
-      >
-        <span className="font-display text-4xl tracking-widest text-white uppercase">New Fill</span>
-      </Link>
+      {/* Mobile: full-screen New Fill button (logged in only) */}
+      {session && (
+        <Link
+          href="/entry"
+          className="sm:hidden flex items-center justify-center w-full h-40 rounded-2xl bg-red-600 hover:bg-red-500 active:bg-red-700 transition-colors"
+        >
+          <span className="font-display text-4xl tracking-widest text-white uppercase">New Fill</span>
+        </Link>
+      )}
 
       {/* Hero header */}
       <div className="relative overflow-hidden rounded-2xl border border-[#1e1e2e] bg-[#111118] p-8">
