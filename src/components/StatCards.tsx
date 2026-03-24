@@ -1,19 +1,23 @@
 'use client'
 import type { Fillup } from '@/db/schema'
-import { fmt, fmtCurrency } from '@/lib/utils'
+import { fmtCurrency } from '@/lib/utils'
 
 interface Props { data: Fillup[] }
 
 export function StatCards({ data }: Props) {
-  const withMpg  = data.filter(d => d.milesPerGallon != null).map(d => Number(d.milesPerGallon))
-  const withCpg  = data.filter(d => d.dolPerGallon   != null).map(d => Number(d.dolPerGallon))
-  const withCost = data.filter(d => d.cost            != null).map(d => Number(d.cost))
-  const withGal  = data.filter(d => d.gallons         != null).map(d => Number(d.gallons))
+  const valid = (v: unknown) => { const n = Number(v); return v != null && v !== '' && !isNaN(n) && isFinite(n) && n > 0 }
+  const withMpg  = data.map(d => Number(d.milesPerGallon)).filter(valid)
+  const withCpg  = data.map(d => Number(d.dolPerGallon)).filter(valid)
+  const withCost = data.map(d => Number(d.cost)).filter(valid)
+  const withGal  = data.map(d => Number(d.gallons)).filter(valid)
 
   const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
   const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0)
 
   const last = data[data.length - 1]
+
+  const minCpg  = withCpg.length  ? Math.min(...withCpg)  : null
+  const maxCost = withCost.length ? Math.max(...withCost) : null
 
   const stats = [
     {
@@ -24,12 +28,12 @@ export function StatCards({ data }: Props) {
     {
       label: 'Avg $/Gallon',
       value: fmtCurrency(avg(withCpg)),
-      sub: `best ${fmtCurrency(Math.min(...withCpg))}`,
+      sub: minCpg != null ? `best ${fmtCurrency(minCpg)}` : '',
     },
     {
       label: 'Avg Fill Cost',
       value: fmtCurrency(avg(withCost)),
-      sub: `max ${fmtCurrency(Math.max(...withCost))}`,
+      sub: maxCost != null ? `max ${fmtCurrency(maxCost)}` : '',
     },
     {
       label: 'Current Odometer',
