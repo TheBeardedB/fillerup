@@ -1,17 +1,31 @@
-import { pgTable, serial, date, numeric, timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, serial, date, numeric, timestamp, varchar, integer, boolean } from 'drizzle-orm/pg-core'
 
-export const fillups = pgTable('fillups', {
-  id:            serial('id').primaryKey(),
-  date:          date('date').notNull(),
-  odometer:      numeric('odometer', { precision: 10, scale: 1 }).notNull(),
-  cost:          numeric('cost',     { precision: 8,  scale: 2 }).notNull(),
-  gallons:       numeric('gallons',  { precision: 8,  scale: 3 }).notNull(),
-  // Derived — stored for convenience, always recalculable
-  dolPerGallon:  numeric('dol_per_gallon',  { precision: 8, scale: 4 }),
-  milesPerGallon:numeric('miles_per_gallon',{ precision: 8, scale: 4 }),
-  milesTravelled:numeric('miles_travelled', { precision: 10, scale: 1 }),
-  createdAt:     timestamp('created_at').defaultNow().notNull(),
+export const vehicles = pgTable('vehicles', {
+  id:        serial('id').primaryKey(),
+  name:      varchar('name', { length: 100 }).notNull(),
+  year:      integer('year'),
+  make:      varchar('make', { length: 50 }),
+  model:     varchar('model', { length: 50 }),
+  color:     varchar('color', { length: 50 }),
+  isActive:  boolean('is_active').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
-export type Fillup    = typeof fillups.$inferSelect
-export type NewFillup = typeof fillups.$inferInsert
+export const fillups = pgTable('fillups', {
+  id:             serial('id').primaryKey(),
+  vehicleId:      integer('vehicle_id').references(() => vehicles.id, { onDelete: 'cascade' }),
+  date:           date('date').notNull(),
+  odometer:       numeric('odometer', { precision: 10, scale: 1 }).notNull(),
+  cost:           numeric('cost',     { precision: 8,  scale: 2 }).notNull(),
+  gallons:        numeric('gallons',  { precision: 8,  scale: 3 }).notNull(),
+  // Derived — stored for convenience, always recalculable
+  dolPerGallon:   numeric('dol_per_gallon',  { precision: 8, scale: 4 }),
+  milesPerGallon: numeric('miles_per_gallon',{ precision: 8, scale: 4 }),
+  milesTravelled: numeric('miles_travelled', { precision: 10, scale: 1 }),
+  createdAt:      timestamp('created_at').defaultNow().notNull(),
+})
+
+export type Vehicle    = typeof vehicles.$inferSelect
+export type NewVehicle = typeof vehicles.$inferInsert
+export type Fillup     = typeof fillups.$inferSelect
+export type NewFillup  = typeof fillups.$inferInsert

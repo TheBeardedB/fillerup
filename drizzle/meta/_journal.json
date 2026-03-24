@@ -8,6 +8,13 @@
       "when": 1774323724752,
       "tag": "0000_regular_madripoor",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774324148707,
+      "tag": "0001_condemned_misty_knight",
+      "breakpoints": true
     }
   ]
 }

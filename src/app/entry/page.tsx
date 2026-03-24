@@ -5,28 +5,46 @@ import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { calcDerived, fmt, fmtCurrency } from '@/lib/utils'
 
+interface Vehicle { id: number; name: string; isActive: boolean }
+
 export default function EntryPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
 
   const today = format(new Date(), 'yyyy-MM-dd')
 
-  const [form, setForm]         = useState({ date: today, odometer: '', cost: '', gallons: '' })
-  const [prevOdo, setPrevOdo]   = useState<number | null>(null)
+  const [vehicles, setVehicles]     = useState<Vehicle[]>([])
+  const [vehicleId, setVehicleId]   = useState<number | null>(null)
+  const [form, setForm]             = useState({ date: today, odometer: '', cost: '', gallons: '' })
+  const [prevOdo, setPrevOdo]       = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [success, setSuccess]   = useState(false)
-  const [error, setError]       = useState('')
+  const [success, setSuccess]       = useState(false)
+  const [error, setError]           = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
 
   useEffect(() => {
-    fetch('/api/fillups?latest=1')
+    fetch('/api/vehicles')
+      .then(r => r.json())
+      .then((vs: Vehicle[]) => {
+        setVehicles(vs)
+        const active = vs.find(v => v.isActive) ?? vs[0]
+        if (active) setVehicleId(active.id)
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const url = vehicleId != null
+      ? `/api/fillups?latest=1&vehicleId=${vehicleId}`
+      : '/api/fillups?latest=1'
+    fetch(url)
       .then(r => r.json())
       .then(d => setPrevOdo(d.odometer ? Number(d.odometer) : null))
       .catch(() => {})
-  }, [])
+  }, [vehicleId])
 
   const odo  = Number(form.odometer)
   const cost = Number(form.cost)
@@ -42,7 +60,7 @@ export default function EntryPage() {
       const res = await fetch('/api/fillups', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form }),
+        body: JSON.stringify({ ...form, vehicleId }),
       })
       if (!res.ok) {
         const j = await res.json()
@@ -69,6 +87,27 @@ export default function EntryPage() {
 
       <form onSubmit={handleSubmit} className="relative overflow-hidden bg-[#111118] border border-[#1e1e2e] rounded-2xl p-6 space-y-5">
         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-red-600/50 to-transparent" />
+
+        {vehicles.length > 0 && (
+          <Field label="Vehicle">
+            <div className="flex flex-wrap gap-2">
+              {vehicles.map(v => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => setVehicleId(v.id)}
+                  className={`font-condensed text-sm tracking-widest uppercase px-4 py-2.5 rounded-xl border transition-colors ${
+                    vehicleId === v.id
+                      ? 'bg-red-700/30 border-red-700 text-white'
+                      : 'border-[#1e1e2e] text-gray-500 hover:text-white'
+                  }`}
+                >
+                  {v.name}
+                </button>
+              ))}
+            </div>
+          </Field>
+        )}
 
         <Field label="Date">
           <input
