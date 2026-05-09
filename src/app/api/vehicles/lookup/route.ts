@@ -63,12 +63,15 @@ export async function GET(req: NextRequest) {
   const year  = searchParams.get('year')?.trim()
   const make  = searchParams.get('make')?.trim()
   const model = searchParams.get('model')?.trim()
+  const logPrefix = '[vehicle-lookup]'
 
   if (!year || !make || !model) {
+    console.warn(`${logPrefix} missing params`, { year: !!year, make: !!make, model: !!model })
     return NextResponse.json({ error: 'year, make, and model are required' }, { status: 400 })
   }
 
   try {
+    console.info(`${logPrefix} start`, { year, make, model })
     // CarQuery API returns JSONP: data({...}) — strip the wrapper
     const url = `https://www.carqueryapi.com/api/0.3/?cmd=getTrims&year=${encodeURIComponent(year)}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&callback=data`
     const res  = await fetch(url, {
@@ -76,15 +79,30 @@ export async function GET(req: NextRequest) {
       signal: AbortSignal.timeout(8000),
     })
 
-    if (!res.ok) throw new Error(`CarQuery returned ${res.status}`)
+    if (!res.ok) {
+      const bodySnippet = (await res.text()).slice(0, 400)
+      console.error(`${logPrefix} upstream non-200`, { status: res.status, bodySnippet })
+      throw new Error(`CarQuery returned ${res.status}`)
+    }
 
     const text   = await res.text()
     // Strip JSONP wrapper: data({...});
     const json   = text.replace(/^data\s*\(/, '').replace(/\);\s*$/, '').trim()
-    const parsed = JSON.parse(json) as { Trims?: CarQueryTrim[] }
+    let parsed: { Trims?: CarQueryTrim[] }
+    try {
+      parsed = JSON.parse(json) as { Trims?: CarQueryTrim[] }
+    } catch (parseErr: any) {
+      console.error(`${logPrefix} parse failure`, {
+        error: parseErr?.message ?? 'unknown parse error',
+        responseSnippet: text.slice(0, 400),
+      })
+      throw parseErr
+    }
     const trims  = parsed.Trims ?? []
+    console.info(`${logPrefix} upstream parsed`, { trimsFound: trims.length })
 
     if (trims.length === 0) {
+      console.warn(`${logPrefix} no trims found`, { year, make, model })
       return NextResponse.json<LookupResult>({
         vehicleType: null, engineType: null, tireSize: null, oilType: null,
       })
@@ -99,9 +117,24 @@ export async function GET(req: NextRequest) {
       tireSize:    best.model_tires_front || null,
       oilType:     inferOilType(best),
     }
+    console.info(`${logPrefix} success`, {
+      year,
+      make,
+      model,
+      hasVehicleType: !!result.vehicleType,
+      hasEngineType: !!result.engineType,
+      hasTireSize: !!result.tireSize,
+      hasOilType: !!result.oilType,
+    })
 
     return NextResponse.json(result)
   } catch (err: any) {
+    console.error(`${logPrefix} failed`, {
+      year,
+      make,
+      model,
+      error: err?.message ?? 'unknown error',
+    })
     // Return empty result rather than erroring — user can fill manually
     return NextResponse.json<LookupResult>({
       vehicleType: null, engineType: null, tireSize: null, oilType: null,

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 interface OilFilter { brand: string; number: string }
 
@@ -37,6 +37,7 @@ function parseFilters(json: string | null): OilFilter[] {
 export default function GaragePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loading, setLoading]   = useState(true)
@@ -71,6 +72,9 @@ export default function GaragePage() {
   }, [status, router])
 
   useEffect(() => { fetchVehicles() }, [])
+  useEffect(() => {
+    if (searchParams.get('new') === '1') setShowAdd(true)
+  }, [searchParams])
 
   async function fetchVehicles() {
     setLoading(true)

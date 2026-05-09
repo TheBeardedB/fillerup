@@ -59,6 +59,26 @@ export function VehicleDetail({ vehicle, data, serviceRecords }: Props) {
                 )}
                 {vehicle.color && <> &nbsp;·&nbsp; {vehicle.color}</>}
               </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a href={`/api/vehicles/${vehicle.id}/export?dataset=all&format=json`} className="font-condensed text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 rounded-lg border border-red-900/50 text-red-400 hover:text-red-300 hover:border-red-700 transition-colors">
+                  Export All JSON
+                </a>
+                <a href={`/api/vehicles/${vehicle.id}/export?dataset=all&format=csv`} className="font-condensed text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 rounded-lg border border-red-900/50 text-red-400 hover:text-red-300 hover:border-red-700 transition-colors">
+                  Export All CSV
+                </a>
+                <a href={`/api/vehicles/${vehicle.id}/export?dataset=fillups&format=csv`} className="font-condensed text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 rounded-lg border border-[#1e1e2e] text-gray-400 hover:text-white hover:border-gray-600 transition-colors">
+                  Fill-Ups CSV
+                </a>
+                <a href={`/api/vehicles/${vehicle.id}/export?dataset=fillups&format=json`} className="font-condensed text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 rounded-lg border border-[#1e1e2e] text-gray-400 hover:text-white hover:border-gray-600 transition-colors">
+                  Fill-Ups JSON
+                </a>
+                <a href={`/api/vehicles/${vehicle.id}/export?dataset=maintenance&format=csv`} className="font-condensed text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 rounded-lg border border-[#1e1e2e] text-gray-400 hover:text-white hover:border-gray-600 transition-colors">
+                  Service CSV
+                </a>
+                <a href={`/api/vehicles/${vehicle.id}/export?dataset=maintenance&format=json`} className="font-condensed text-[10px] tracking-[0.2em] uppercase px-3 py-1.5 rounded-lg border border-[#1e1e2e] text-gray-400 hover:text-white hover:border-gray-600 transition-colors">
+                  Service JSON
+                </a>
+              </div>
             </div>
 
             <MpgMeter data={data} />
