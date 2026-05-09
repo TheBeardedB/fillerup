@@ -18,13 +18,24 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   } else {
     const { name, year, make, model, color, licensePlate, initialMileage,
             vehicleType, engineType, oilType, tireSize, oilFilters } = body
+    const normalizedPlate = typeof licensePlate === 'string' ? licensePlate.trim() : undefined
+    let encryptedPlate: string | undefined
+    if (normalizedPlate) {
+      try {
+        encryptedPlate = encryptPlate(normalizedPlate)
+      } catch (err) {
+        console.error('[vehicles] failed to encrypt license plate on update', err)
+        return NextResponse.json({ error: 'License plate encryption is not configured correctly on the server.' }, { status: 500 })
+      }
+    }
+
     await db.update(vehicles).set({
       ...(name           !== undefined && { name }),
       ...(year           !== undefined && { year: year ? Number(year) : null }),
       ...(make           !== undefined && { make:  make  || null }),
       ...(model          !== undefined && { model: model || null }),
       ...(color          !== undefined && { color: color || null }),
-      ...(licensePlate   !== undefined && licensePlate !== '' && { licensePlate: encryptPlate(licensePlate) }),
+      ...(encryptedPlate !== undefined && { licensePlate: encryptedPlate }),
       ...(initialMileage !== undefined && { initialMileage: initialMileage ? Number(initialMileage) : null }),
       ...(vehicleType    !== undefined && { vehicleType: vehicleType || null }),
       ...(engineType     !== undefined && { engineType:  engineType  || null }),

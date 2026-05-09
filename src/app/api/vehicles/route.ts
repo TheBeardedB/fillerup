@@ -43,12 +43,23 @@ export async function POST(req: NextRequest) {
   const { name, year, make, model, color, licensePlate, initialMileage,
           vehicleType, engineType, oilType, tireSize, oilFilters } = body
   if (!name) return NextResponse.json({ error: 'Name required' }, { status: 400 })
+  const normalizedPlate = typeof licensePlate === 'string' ? licensePlate.trim() : ''
 
   const existing = await db
     .select({ id: vehicles.id })
     .from(vehicles)
     .where(eq(vehicles.userId, user.id))
   const isFirst = existing.length === 0
+
+  let encryptedPlate: string | null = null
+  if (normalizedPlate) {
+    try {
+      encryptedPlate = encryptPlate(normalizedPlate)
+    } catch (err) {
+      console.error('[vehicles] failed to encrypt license plate', err)
+      return NextResponse.json({ error: 'License plate encryption is not configured correctly on the server.' }, { status: 500 })
+    }
+  }
 
   const [row] = await db.insert(vehicles).values({
     userId: user.id,
@@ -57,7 +68,7 @@ export async function POST(req: NextRequest) {
     make:           make           || null,
     model:          model          || null,
     color:          color          || null,
-    licensePlate:   licensePlate   ? encryptPlate(licensePlate)   : null,
+    licensePlate:   encryptedPlate,
     initialMileage: initialMileage ? Number(initialMileage) : null,
     vehicleType:    vehicleType    || null,
     engineType:     engineType     || null,

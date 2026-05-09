@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 
 interface OilFilter { brand: string; number: string }
 
@@ -37,7 +37,6 @@ function parseFilters(json: string | null): OilFilter[] {
 export default function GaragePage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loading, setLoading]   = useState(true)
@@ -45,11 +44,13 @@ export default function GaragePage() {
   const [addForm, setAddForm]   = useState(emptyForm)
   const [addFilters, setAddFilters] = useState<OilFilter[]>([])
   const [adding, setAdding]     = useState(false)
+  const [addError, setAddError] = useState('')
   const [lookingUp, setLookingUp] = useState(false)
   const [editId, setEditId]     = useState<number | null>(null)
   const [editForm, setEditForm] = useState(emptyForm)
   const [editFilters, setEditFilters] = useState<OilFilter[]>([])
   const [saving, setSaving]     = useState(false)
+  const [editError, setEditError] = useState('')
   const [editLookingUp, setEditLookingUp] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
   const [revealedPlates, setRevealedPlates] = useState<Record<number, string>>({})
@@ -73,8 +74,10 @@ export default function GaragePage() {
 
   useEffect(() => { fetchVehicles() }, [])
   useEffect(() => {
-    if (searchParams.get('new') === '1') setShowAdd(true)
-  }, [searchParams])
+    if (typeof window === 'undefined') return
+    const isNew = new URLSearchParams(window.location.search).get('new') === '1'
+    if (isNew) setShowAdd(true)
+  }, [])
 
   async function fetchVehicles() {
     setLoading(true)
@@ -113,9 +116,10 @@ export default function GaragePage() {
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
+    setAddError('')
     setAdding(true)
     try {
-      await fetch('/api/vehicles', {
+      const res = await fetch('/api/vehicles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -124,10 +128,16 @@ export default function GaragePage() {
           oilFilters: addFilters.length ? JSON.stringify(addFilters) : null,
         }),
       })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error(j.error ?? 'Failed to add vehicle')
+      }
       setAddForm(emptyForm)
       setAddFilters([])
       setShowAdd(false)
       await fetchVehicles()
+    } catch (err: any) {
+      setAddError(err.message ?? 'Failed to add vehicle')
     } finally {
       setAdding(false)
     }
@@ -136,9 +146,10 @@ export default function GaragePage() {
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault()
     if (editId == null) return
+    setEditError('')
     setSaving(true)
     try {
-      await fetch(`/api/vehicles/${editId}`, {
+      const res = await fetch(`/api/vehicles/${editId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -147,8 +158,14 @@ export default function GaragePage() {
           oilFilters: editFilters.length ? JSON.stringify(editFilters) : null,
         }),
       })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        throw new Error(j.error ?? 'Failed to save vehicle')
+      }
       setEditId(null)
       await fetchVehicles()
+    } catch (err: any) {
+      setEditError(err.message ?? 'Failed to save vehicle')
     } finally {
       setSaving(false)
     }
@@ -207,6 +224,7 @@ export default function GaragePage() {
               Cancel
             </button>
           </div>
+          {addError && <p className="font-condensed text-xs tracking-wide text-red-400">{addError}</p>}
         </form>
       )}
 
@@ -236,6 +254,7 @@ export default function GaragePage() {
                     Cancel
                   </button>
                 </div>
+                {editError && <p className="font-condensed text-xs tracking-wide text-red-400">{editError}</p>}
               </form>
             ) : (
               <div className="flex items-start justify-between gap-4">
@@ -284,9 +303,11 @@ export default function GaragePage() {
                         <button
                           onClick={() => revealPlate(v.id)}
                           disabled={revealingId === v.id}
-                          className="text-gray-500 hover:text-white transition-colors underline underline-offset-2"
+                          className="text-gray-500 hover:text-white transition-colors"
+                          aria-label={revealedPlates[v.id] ? 'Hide license plate' : 'Show license plate'}
+                          title={revealedPlates[v.id] ? 'Hide license plate' : 'Show license plate'}
                         >
-                          {revealingId === v.id ? '…' : revealedPlates[v.id] ? 'hide' : 'show'}
+                          {revealingId === v.id ? '…' : <EyeIcon open={!!revealedPlates[v.id]} />}
                         </button>
                       </span>
                     )}
@@ -350,6 +371,25 @@ export default function GaragePage() {
         ))}
       </div>
     </div>
+  )
+}
+
+function EyeIcon({ open }: { open: boolean }) {
+  if (!open) {
+    return (
+      <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    )
+  }
+  return (
+    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 3l18 18" />
+      <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+      <path d="M9.9 5.1A10.9 10.9 0 0 1 12 5c6.5 0 10 7 10 7a17.5 17.5 0 0 1-4.1 4.9" />
+      <path d="M6.1 6.1A17.6 17.6 0 0 0 2 12s3.5 7 10 7a10.9 10.9 0 0 0 2.1-.1" />
+    </svg>
   )
 }
 
