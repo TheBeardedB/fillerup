@@ -76,6 +76,76 @@ function fallbackErrorDetails(err: any) {
   }
 }
 
+function normalizeRapidApiRows(payload: any): any[] {
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.data)) return payload.data
+  if (Array.isArray(payload?.collection?.data)) return payload.collection.data
+  if (Array.isArray(payload?.results)) return payload.results
+  return []
+}
+
+async function lookupWithRapidApiCarApi(year: string, make: string, model: string, logPrefix: string): Promise<TrimCandidate[]> {
+  const rapidKey = process.env.RAPIDAPI_KEY
+  const rapidHost = process.env.RAPIDAPI_CARAPI_HOST ?? 'car-api2.p.rapidapi.com'
+  if (!rapidKey || !rapidHost) return []
+
+  const endpoint = process.env.RAPIDAPI_CARAPI_TRIMS_ENDPOINT ?? '/api/trims'
+  const baseUrl = process.env.RAPIDAPI_CARAPI_BASE_URL ?? `https://${rapidHost}`
+  const url = new URL(endpoint, baseUrl)
+  url.searchParams.set('year', year)
+  url.searchParams.set('make', make)
+  url.searchParams.set('model', model)
+  if (!url.searchParams.get('verbose')) url.searchParams.set('verbose', 'yes')
+  if (!url.searchParams.get('sort')) url.searchParams.set('sort', 'id')
+  if (!url.searchParams.get('direction')) url.searchParams.set('direction', 'asc')
+
+  const res = await fetch(url.toString(), {
+    headers: {
+      'X-RapidAPI-Key': rapidKey,
+      'X-RapidAPI-Host': rapidHost,
+      'Accept': 'application/json',
+    },
+    signal: AbortSignal.timeout(12000),
+  })
+
+  if (!res.ok) {
+    const bodySnippet = (await res.text()).slice(0, 500)
+    console.error(`${logPrefix} rapidapi non-200`, { status: res.status, bodySnippet })
+    return []
+  }
+
+  const payload = await res.json()
+  const rows = normalizeRapidApiRows(payload)
+  console.info(`${logPrefix} rapidapi response`, {
+    rows: rows.length,
+    topKeys: payload && typeof payload === 'object' ? Object.keys(payload).slice(0, 20) : [],
+    rowKeys: rows[0] && typeof rows[0] === 'object' ? Object.keys(rows[0]).slice(0, 25) : [],
+  })
+
+  const candidates: TrimCandidate[] = rows.map((r: any, i) => {
+    const trim = r.trim ?? r.model_trim ?? r.name ?? r.description ?? null
+    const engine = r.engine ?? r.engine_type ?? r.engine_description ?? r.engine_name ?? null
+    const body = r.body_type ?? r.body ?? r.vehicle_type ?? null
+    const tire = r.tire_size ?? r.front_tire_size ?? r.tires_front ?? r.model_tires_front ?? null
+    const oil = r.oil_type ?? r.recommended_oil ?? r.engine_oil ?? null
+    const filter = r.oil_filter ?? r.oil_filter_part ?? r.filter_part_number ?? null
+
+    return {
+      id: String(r.id ?? r.trim_id ?? `${make}-${model}-${year}-${i}`),
+      label: String(trim ?? `Trim ${i + 1}`),
+      source: 'carquery',
+      trimLevel: trim ? String(trim) : null,
+      vehicleType: body ? normalizeBody(String(body)) : null,
+      engineType: engine ? String(engine) : null,
+      tireSize: tire ? String(tire) : null,
+      oilType: oil ? String(oil) : null,
+      oilFilterHint: filter ? String(filter) : null,
+    }
+  })
+
+  return candidates.filter(c => c.trimLevel || c.engineType || c.tireSize || c.oilType)
+}
+
 async function lookupWithCarQuery(year: string, make: string, model: string, logPrefix: string): Promise<TrimCandidate[]> {
   const url = `https://carqueryapi.com/api/0.3/?cmd=getTrims&year=${encodeURIComponent(year)}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&callback=data`
   const res = await fetch(url, {
@@ -183,10 +253,21 @@ export async function GET(req: NextRequest) {
 
   let candidates: TrimCandidate[] = []
   try {
+    candidates = await lookupWithRapidApiCarApi(year, make, model, logPrefix)
+    if (candidates.length > 0) {
+      console.info(`${logPrefix} rapidapi candidates`, { count: candidates.length })
+    }
+  } catch (err: any) {
+    console.error(`${logPrefix} rapidapi failed`, fallbackErrorDetails(err))
+  }
+
+  if (candidates.length === 0) {
+  try {
     candidates = await lookupWithCarQuery(year, make, model, logPrefix)
     console.info(`${logPrefix} carquery candidates`, { count: candidates.length })
   } catch (err: any) {
     console.error(`${logPrefix} carquery failed`, fallbackErrorDetails(err))
+  }
   }
 
   if (candidates.length === 0) {

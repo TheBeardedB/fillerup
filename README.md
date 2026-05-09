@@ -26,6 +26,10 @@ Fill in `.env.local`:
 | `NEXTAUTH_SECRET` | Run `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | `http://localhost:3000` for local dev |
 | `DATABASE_URL` | Local Postgres connection string, e.g. `postgresql://user:pass@localhost:5432/fuellog` |
+| `RAPIDAPI_KEY` | Optional: RapidAPI key for CarAPI lookup |
+| `RAPIDAPI_CARAPI_HOST` | Optional: RapidAPI host header value for CarAPI (default `car-api2.p.rapidapi.com`) |
+| `RAPIDAPI_CARAPI_BASE_URL` | Optional: base URL override (defaults to `https://$RAPIDAPI_CARAPI_HOST`) |
+| `RAPIDAPI_CARAPI_TRIMS_ENDPOINT` | Optional: trims endpoint path (defaults to `/api/trims`) |
 
 ### 3. Generate and run migrations
 ```bash
