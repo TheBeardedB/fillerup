@@ -43,6 +43,13 @@
       "when": 1778342400000,
       "tag": "0008_multi_user_support",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1778348255336,
+      "tag": "0010_pale_rogue",
+      "breakpoints": true
     }
   ]
 }

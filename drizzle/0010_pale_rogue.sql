@@ -1,0 +1,1 @@
+ALTER TABLE "vehicles" ADD COLUMN "trim_level" varchar(100);

@@ -17,7 +17,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     await db.update(vehicles).set({ isActive: true }).where(and(eq(vehicles.id, id), eq(vehicles.userId, user.id)))
   } else {
     const { name, year, make, model, color, licensePlate, initialMileage,
-            vehicleType, engineType, oilType, tireSize, oilFilters } = body
+            vehicleType, engineType, oilType, tireSize, oilFilters, trimLevel } = body
     const normalizedPlate = typeof licensePlate === 'string' ? licensePlate.trim() : undefined
     let encryptedPlate: string | undefined
     if (normalizedPlate) {
@@ -34,6 +34,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(year           !== undefined && { year: year ? Number(year) : null }),
       ...(make           !== undefined && { make:  make  || null }),
       ...(model          !== undefined && { model: model || null }),
+      ...(trimLevel      !== undefined && { trimLevel: trimLevel || null }),
       ...(color          !== undefined && { color: color || null }),
       ...(encryptedPlate !== undefined && { licensePlate: encryptedPlate }),
       ...(initialMileage !== undefined && { initialMileage: initialMileage ? Number(initialMileage) : null }),

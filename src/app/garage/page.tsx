@@ -12,6 +12,7 @@ interface Vehicle {
   year: number | null
   make: string | null
   model: string | null
+  trimLevel: string | null
   color: string | null
   licensePlate: true | null  // API never returns the real value
   initialMileage: number | null
@@ -26,7 +27,18 @@ interface Vehicle {
 
 const emptyForm = {
   name: '', year: '', make: '', model: '', color: '', licensePlate: '', initialMileage: '',
-  vehicleType: '', engineType: '', oilType: '', tireSize: '',
+  vehicleType: '', engineType: '', oilType: '', tireSize: '', trimLevel: '',
+}
+
+interface LookupCandidate {
+  id: string
+  label: string
+  trimLevel: string | null
+  vehicleType: string | null
+  engineType: string | null
+  tireSize: string | null
+  oilType: string | null
+  oilFilterHint: string | null
 }
 
 function parseFilters(json: string | null): OilFilter[] {
@@ -53,6 +65,8 @@ export default function GaragePage() {
   const [editError, setEditError] = useState('')
   const [editLookingUp, setEditLookingUp] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null)
+  const [lookupCandidates, setLookupCandidates] = useState<LookupCandidate[]>([])
+  const [lookupTarget, setLookupTarget] = useState<'add' | 'edit' | null>(null)
   const [revealedPlates, setRevealedPlates] = useState<Record<number, string>>({})
   const [revealingId, setRevealingId] = useState<number | null>(null)
 
@@ -92,8 +106,9 @@ export default function GaragePage() {
   async function lookupSpecs(
     form: typeof emptyForm,
     setForm: (f: typeof emptyForm) => void,
-    setFilters: (f: OilFilter[]) => void,
+    _setFilters: (f: OilFilter[]) => void,
     setWorking: (b: boolean) => void,
+    target: 'add' | 'edit',
   ) {
     const { year, make, model } = form
     if (!year || !make || !model) return
@@ -102,16 +117,38 @@ export default function GaragePage() {
       const params = new URLSearchParams({ year, make, model })
       const res  = await fetch(`/api/vehicles/lookup?${params}`)
       const data = await res.json()
+      if (data.needsSelection && Array.isArray(data.candidates) && data.candidates.length > 1) {
+        setLookupCandidates(data.candidates)
+        setLookupTarget(target)
+        return
+      }
+      const result = data.result ?? data
       setForm({
         ...form,
-        vehicleType: data.vehicleType ?? form.vehicleType,
-        engineType:  data.engineType  ?? form.engineType,
-        oilType:     data.oilType     ?? form.oilType,
-        tireSize:    data.tireSize    ?? form.tireSize,
+        vehicleType: result.vehicleType ?? form.vehicleType,
+        engineType:  result.engineType  ?? form.engineType,
+        oilType:     result.oilType     ?? form.oilType,
+        tireSize:    result.tireSize    ?? form.tireSize,
+        trimLevel:   result.trimLevel   ?? form.trimLevel,
       })
     } finally {
       setWorking(false)
     }
+  }
+
+  async function chooseTrim(candidate: LookupCandidate) {
+    const apply = (curr: typeof emptyForm) => ({
+      ...curr,
+      vehicleType: candidate.vehicleType ?? curr.vehicleType,
+      engineType: candidate.engineType ?? curr.engineType,
+      oilType: candidate.oilType ?? curr.oilType,
+      tireSize: candidate.tireSize ?? curr.tireSize,
+      trimLevel: candidate.trimLevel ?? curr.trimLevel,
+    })
+    if (lookupTarget === 'add') setAddForm(apply)
+    if (lookupTarget === 'edit') setEditForm(apply)
+    setLookupCandidates([])
+    setLookupTarget(null)
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -214,7 +251,7 @@ export default function GaragePage() {
           <LookupButton
             disabled={!addForm.year || !addForm.make || !addForm.model}
             loading={lookingUp}
-            onClick={() => lookupSpecs(addForm, setAddForm, setAddFilters, setLookingUp)}
+            onClick={() => lookupSpecs(addForm, setAddForm, setAddFilters, setLookingUp, 'add')}
           />
           <div className="flex gap-3 pt-1">
             <button type="submit" disabled={adding} className="flex-1 bg-red-700 hover:bg-red-600 disabled:opacity-50 rounded-xl py-3 font-condensed tracking-widest uppercase text-sm transition-colors">
@@ -244,7 +281,7 @@ export default function GaragePage() {
                 <LookupButton
                   disabled={!editForm.year || !editForm.make || !editForm.model}
                   loading={editLookingUp}
-                  onClick={() => lookupSpecs(editForm, setEditForm, setEditFilters, setEditLookingUp)}
+                  onClick={() => lookupSpecs(editForm, setEditForm, setEditFilters, setEditLookingUp, 'edit')}
                 />
                 <div className="flex gap-3">
                   <button type="submit" disabled={saving} className="flex-1 bg-red-700 hover:bg-red-600 disabled:opacity-50 rounded-xl py-2.5 font-condensed tracking-widest uppercase text-sm transition-colors">
@@ -270,7 +307,7 @@ export default function GaragePage() {
                     )}
                   </div>
                   <div className="font-condensed text-xs text-gray-500 tracking-wider">
-                    {[v.year, v.make, v.model, v.color].filter(Boolean).join(' · ')}
+                    {[v.year, v.make, v.model, v.trimLevel, v.color].filter(Boolean).join(' · ')}
                   </div>
 
                   {/* Spec chips */}
@@ -333,7 +370,7 @@ export default function GaragePage() {
                         model: v.model ?? '', color: v.color ?? '', licensePlate: '',
                         initialMileage: v.initialMileage?.toString() ?? '',
                         vehicleType: v.vehicleType ?? '', engineType: v.engineType ?? '',
-                        oilType: v.oilType ?? '', tireSize: v.tireSize ?? '',
+                        oilType: v.oilType ?? '', tireSize: v.tireSize ?? '', trimLevel: v.trimLevel ?? '',
                       })
                       setEditFilters(parseFilters(v.oilFilters))
                     }}
@@ -370,6 +407,36 @@ export default function GaragePage() {
           </div>
         ))}
       </div>
+      {lookupCandidates.length > 1 && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="w-full max-w-xl bg-[#111118] border border-[#1e1e2e] rounded-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-condensed text-sm tracking-[0.2em] uppercase text-white">Pick Trim</h2>
+              <button
+                onClick={() => { setLookupCandidates([]); setLookupTarget(null) }}
+                className="font-condensed text-xs tracking-widest uppercase text-gray-500 hover:text-white"
+              >
+                Cancel
+              </button>
+            </div>
+            <div className="space-y-2 max-h-[50vh] overflow-auto">
+              {lookupCandidates.map(c => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => chooseTrim(c)}
+                  className="w-full text-left rounded-xl border border-[#1e1e2e] hover:border-gray-600 p-3 transition-colors"
+                >
+                  <div className="font-condensed text-sm tracking-wider uppercase text-white">{c.label}</div>
+                  <div className="font-condensed text-[10px] tracking-[0.15em] uppercase text-gray-500 mt-1">
+                    {[c.engineType, c.tireSize, c.oilType].filter(Boolean).join(' · ') || 'Limited detail'}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -499,6 +566,10 @@ function VehicleFormFields({ form, setForm, filters, setFilters }: {
         <div>
           <label className="font-condensed text-xs tracking-[0.2em] uppercase text-gray-500 block mb-1">Model</label>
           <input value={form.model} onChange={set('model')} placeholder="Equator" className={inputCls} />
+        </div>
+        <div>
+          <label className="font-condensed text-xs tracking-[0.2em] uppercase text-gray-500 block mb-1">Trim Level</label>
+          <input value={form.trimLevel} onChange={set('trimLevel')} placeholder="e.g. Premium" className={inputCls} />
         </div>
         <div>
           <label className="font-condensed text-xs tracking-[0.2em] uppercase text-gray-500 block mb-1">License Plate</label>

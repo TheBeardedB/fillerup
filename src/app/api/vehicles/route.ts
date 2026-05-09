@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json()
   const { name, year, make, model, color, licensePlate, initialMileage,
-          vehicleType, engineType, oilType, tireSize, oilFilters } = body
+          vehicleType, engineType, oilType, tireSize, oilFilters, trimLevel } = body
   if (!name) return NextResponse.json({ error: 'Name required' }, { status: 400 })
   const normalizedPlate = typeof licensePlate === 'string' ? licensePlate.trim() : ''
 
@@ -67,6 +67,7 @@ export async function POST(req: NextRequest) {
     year:           year           ? Number(year)           : null,
     make:           make           || null,
     model:          model          || null,
+    trimLevel:      trimLevel      || null,
     color:          color          || null,
     licensePlate:   encryptedPlate,
     initialMileage: initialMileage ? Number(initialMileage) : null,

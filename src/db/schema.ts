@@ -16,6 +16,7 @@ export const vehicles = pgTable('vehicles', {
   year:      integer('year'),
   make:      varchar('make', { length: 50 }),
   model:     varchar('model', { length: 50 }),
+  trimLevel: varchar('trim_level', { length: 100 }),
   color:          varchar('color', { length: 50 }),
   licensePlate:   varchar('license_plate', { length: 200 }),
   initialMileage: integer('initial_mileage'),

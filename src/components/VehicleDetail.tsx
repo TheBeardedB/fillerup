@@ -26,7 +26,7 @@ export function VehicleDetail({ vehicle, data, serviceRecords }: Props) {
   const totalSpent = withCost.length ? sum(withCost) : null
   const currentOdo = last ? Number(last.odometer) : null
 
-  const heroTitle = [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(' ') || vehicle.name
+  const heroTitle = [vehicle.year, vehicle.make, vehicle.model, vehicle.trimLevel].filter(Boolean).join(' ') || vehicle.name
 
   return (
     <div className="space-y-8">
