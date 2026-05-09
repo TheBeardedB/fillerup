@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { db } from '@/db'
-import { maintenance } from '@/db/schema'
-import { eq } from 'drizzle-orm'
+import { maintenance, vehicles } from '@/db/schema'
+import { and, eq } from 'drizzle-orm'
+import { getOrCreateCurrentUser } from '@/lib/current-user'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = await getOrCreateCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const id   = Number(params.id)
+  const [row] = await db
+    .select({ id: maintenance.id })
+    .from(maintenance)
+    .innerJoin(vehicles, eq(vehicles.id, maintenance.vehicleId))
+    .where(and(eq(maintenance.id, id), eq(vehicles.userId, user.id)))
+    .limit(1)
+  if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
   const body = await req.json()
   const { type, date, odometer, cost, notes, details } = body
 
@@ -27,9 +34,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = await getOrCreateCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  await db.delete(maintenance).where(eq(maintenance.id, Number(params.id)))
+  const id = Number(params.id)
+  const [row] = await db
+    .select({ id: maintenance.id })
+    .from(maintenance)
+    .innerJoin(vehicles, eq(vehicles.id, maintenance.vehicleId))
+    .where(and(eq(maintenance.id, id), eq(vehicles.userId, user.id)))
+    .limit(1)
+  if (!row) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  await db.delete(maintenance).where(eq(maintenance.id, id))
   return NextResponse.json({ ok: true })
 }

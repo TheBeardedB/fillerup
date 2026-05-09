@@ -1,25 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { db } from '@/db'
 import { fillups, vehicles } from '@/db/schema'
-import { eq, desc } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { calcDerived } from '@/lib/utils'
 import Papa from 'papaparse'
+import { getOrCreateCurrentUser } from '@/lib/current-user'
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = await getOrCreateCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { csv, vehicleId: bodyVehicleId } = await req.json()
   if (!csv) return NextResponse.json({ error: 'No CSV provided' }, { status: 400 })
 
   // Resolve vehicleId
-  let vehicleId: number | null = bodyVehicleId ?? null
+  let vehicleId: number | null = bodyVehicleId != null ? Number(bodyVehicleId) : null
   if (vehicleId == null) {
-    const active = await db.select({ id: vehicles.id }).from(vehicles).where(eq(vehicles.isActive, true)).limit(1)
+    const active = await db
+      .select({ id: vehicles.id })
+      .from(vehicles)
+      .where(and(eq(vehicles.userId, user.id), eq(vehicles.isActive, true)))
+      .limit(1)
     vehicleId = active[0]?.id ?? null
   }
+  if (vehicleId == null) return NextResponse.json({ error: 'No vehicle selected' }, { status: 400 })
+
+  const [ownedVehicle] = await db
+    .select({ id: vehicles.id })
+    .from(vehicles)
+    .where(and(eq(vehicles.id, vehicleId), eq(vehicles.userId, user.id)))
+    .limit(1)
+  if (!ownedVehicle) return NextResponse.json({ error: 'Vehicle not found' }, { status: 404 })
 
   const parsed = Papa.parse<Record<string, string>>(csv, {
     header: true,
@@ -54,7 +65,10 @@ export async function POST(req: NextRequest) {
 
   rows.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
-  const existing = await db.select({ date: fillups.date, odometer: fillups.odometer }).from(fillups)
+  const existing = await db
+    .select({ date: fillups.date, odometer: fillups.odometer })
+    .from(fillups)
+    .where(eq(fillups.vehicleId, vehicleId))
   const existingSet = new Set(existing.map(e => `${e.date}|${String(Number(e.odometer))}`))
 
   let inserted = 0

@@ -2,8 +2,16 @@ import { pgTable, serial, date, numeric, timestamp, varchar, integer, boolean, t
 
 export const maintenanceTypeEnum = pgEnum('maintenance_type', ['oil_change', 'tire_rotation', 'tire_change'])
 
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  email: varchar('email', { length: 320 }).notNull().unique(),
+  name: varchar('name', { length: 200 }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
 export const vehicles = pgTable('vehicles', {
   id:        serial('id').primaryKey(),
+  userId:    integer('user_id').references(() => users.id, { onDelete: 'set null' }),
   name:      varchar('name', { length: 100 }).notNull(),
   year:      integer('year'),
   make:      varchar('make', { length: 50 }),
@@ -52,3 +60,4 @@ export type NewVehicle   = typeof vehicles.$inferInsert
 export type Fillup       = typeof fillups.$inferSelect
 export type NewFillup    = typeof fillups.$inferInsert
 export type Maintenance  = typeof maintenance.$inferSelect
+export type User         = typeof users.$inferSelect

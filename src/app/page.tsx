@@ -1,17 +1,18 @@
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { db } from '@/db'
 import { fillups, vehicles } from '@/db/schema'
-import { asc } from 'drizzle-orm'
+import { asc, eq, inArray } from 'drizzle-orm'
 import { Dashboard } from '@/components/Dashboard'
+import { getOrCreateCurrentUser } from '@/lib/current-user'
 
 export default async function HomePage() {
-  const session = await getServerSession(authOptions)
+  const user = await getOrCreateCurrentUser()
+  if (!user) return <Dashboard data={[]} vehicles={[]} />
 
-  const [data, vehicleList] = await Promise.all([
-    db.select().from(fillups).orderBy(asc(fillups.date)),
-    db.select().from(vehicles).orderBy(asc(vehicles.name)),
-  ])
+  const vehicleList = await db.select().from(vehicles).where(eq(vehicles.userId, user.id)).orderBy(asc(vehicles.name))
+  const vehicleIds = vehicleList.map(v => v.id)
+  const data = vehicleIds.length
+    ? await db.select().from(fillups).where(inArray(fillups.vehicleId, vehicleIds)).orderBy(asc(fillups.date))
+    : []
 
   return <Dashboard data={data} vehicles={vehicleList} />
 }

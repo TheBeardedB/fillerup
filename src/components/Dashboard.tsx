@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import type { Fillup, Vehicle } from '@/db/schema'
 import { FuelCharts } from './FuelCharts'
 import { StatCards } from './StatCards'
@@ -14,6 +15,7 @@ interface Props {
 
 export function Dashboard({ data, vehicles }: Props) {
   const { data: session } = useSession()
+  const router = useRouter()
 
   // All vehicle IDs selected by default
   const allIds = vehicles.map(v => v.id)
@@ -57,12 +59,20 @@ export function Dashboard({ data, vehicles }: Props) {
 
       {/* Mobile: full-screen New Fill button (logged in only) */}
       {session && (
-        <Link
-          href="/entry"
-          className="sm:hidden flex items-center justify-center w-full h-40 rounded-2xl bg-red-600 hover:bg-red-500 active:bg-red-700 transition-colors"
-        >
-          <span className="font-display text-4xl tracking-widest text-white uppercase">New Fill</span>
-        </Link>
+        <div className="sm:hidden space-y-2">
+          <Link
+            href="/entry"
+            className="flex items-center justify-center w-full h-40 rounded-2xl bg-red-600 hover:bg-red-500 active:bg-red-700 transition-colors"
+          >
+            <span className="font-display text-4xl tracking-widest text-white uppercase">New Fill</span>
+          </Link>
+          <button
+            onClick={() => router.refresh()}
+            className="w-full rounded-xl border border-[#1e1e2e] py-2.5 font-condensed text-xs tracking-widest uppercase text-gray-400"
+          >
+            Refresh Data
+          </button>
+        </div>
       )}
 
       {/* Hero header */}

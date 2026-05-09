@@ -9,9 +9,6 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user }) {
-      return user.email === process.env.ALLOWED_GITHUB_EMAIL
-    },
     async session({ session, token }) {
       return session
     },

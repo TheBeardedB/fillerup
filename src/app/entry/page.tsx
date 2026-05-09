@@ -68,7 +68,8 @@ export default function EntryPage() {
       }
       setSuccess(true)
       setForm({ date: today, odometer: '', cost: '', gallons: '' })
-      setTimeout(() => router.push('/'), 1500)
+      router.replace(`/?updated=${Date.now()}`)
+      router.refresh()
     } catch (err: any) {
       setError(err.message)
     } finally {

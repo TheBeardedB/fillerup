@@ -1,6 +1,6 @@
 # Fuel Log
 
-Next.js fuel economy tracker. Public dashboard with charts and table, protected entry form and CSV import. GitHub OAuth single-user auth.
+Next.js fuel economy tracker. Dashboard with charts and table, protected entry form and CSV import. GitHub OAuth auth with per-user vehicle data.
 
 ---
 
@@ -22,7 +22,7 @@ Fill in `.env.local`:
 |---|---|
 | `GITHUB_ID` | GitHub → Settings → Developer settings → OAuth Apps → New OAuth App. Set callback URL to `http://localhost:3000/api/auth/callback/github` |
 | `GITHUB_SECRET` | Generated alongside the Client ID above |
-| `ALLOWED_GITHUB_EMAIL` | Your GitHub account email |
+| `LEGACY_OWNER_EMAIL` | Optional: email that should auto-claim existing pre-user-scoped vehicles |
 | `NEXTAUTH_SECRET` | Run `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | `http://localhost:3000` for local dev |
 | `DATABASE_URL` | Local Postgres connection string, e.g. `postgresql://user:pass@localhost:5432/fuellog` |
@@ -56,7 +56,7 @@ In Railway → your app service → Variables:
 |---|---|
 | `GITHUB_ID` | From your GitHub OAuth App (update callback URL to your Railway domain: `https://your-app.railway.app/api/auth/callback/github`) |
 | `GITHUB_SECRET` | From your GitHub OAuth App |
-| `ALLOWED_GITHUB_EMAIL` | Your GitHub email |
+| `LEGACY_OWNER_EMAIL` | Optional: email that should auto-claim existing pre-user-scoped vehicles |
 | `NEXTAUTH_SECRET` | Run `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | `https://your-app.railway.app` |
 

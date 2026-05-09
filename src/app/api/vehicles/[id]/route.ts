@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { db } from '@/db'
 import { vehicles } from '@/db/schema'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { encryptPlate } from '@/lib/crypto'
+import { getOrCreateCurrentUser } from '@/lib/current-user'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = await getOrCreateCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const id   = Number(params.id)
   const body = await req.json()
 
   if (body.isActive) {
-    await db.update(vehicles).set({ isActive: false })
-    await db.update(vehicles).set({ isActive: true }).where(eq(vehicles.id, id))
+    await db.update(vehicles).set({ isActive: false }).where(eq(vehicles.userId, user.id))
+    await db.update(vehicles).set({ isActive: true }).where(and(eq(vehicles.id, id), eq(vehicles.userId, user.id)))
   } else {
     const { name, year, make, model, color, licensePlate, initialMileage,
             vehicleType, engineType, oilType, tireSize, oilFilters } = body
@@ -32,21 +31,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(oilType        !== undefined && { oilType:     oilType     || null }),
       ...(tireSize       !== undefined && { tireSize:    tireSize    || null }),
       ...(oilFilters     !== undefined && { oilFilters:  oilFilters  || null }),
-    }).where(eq(vehicles.id, id))
+    }).where(and(eq(vehicles.id, id), eq(vehicles.userId, user.id)))
   }
 
-  const [updated] = await db.select().from(vehicles).where(eq(vehicles.id, id))
+  const [updated] = await db.select().from(vehicles).where(and(eq(vehicles.id, id), eq(vehicles.userId, user.id)))
+  if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json({ ...updated, licensePlate: updated.licensePlate ? true : null })
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await getServerSession(authOptions)
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const user = await getOrCreateCurrentUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const id  = Number(params.id)
-  const all = await db.select({ id: vehicles.id }).from(vehicles)
+  const all = await db.select({ id: vehicles.id }).from(vehicles).where(eq(vehicles.userId, user.id))
   if (all.length <= 1) return NextResponse.json({ error: 'Cannot delete the only vehicle' }, { status: 400 })
 
-  await db.delete(vehicles).where(eq(vehicles.id, id))
+  await db.delete(vehicles).where(and(eq(vehicles.id, id), eq(vehicles.userId, user.id)))
   return NextResponse.json({ ok: true })
 }
