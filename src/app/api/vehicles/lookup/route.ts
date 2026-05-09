@@ -77,7 +77,7 @@ function fallbackErrorDetails(err: any) {
 }
 
 async function lookupWithCarQuery(year: string, make: string, model: string, logPrefix: string): Promise<TrimCandidate[]> {
-  const url = `https://www.carqueryapi.com/api/0.3/?cmd=getTrims&year=${encodeURIComponent(year)}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&callback=data`
+  const url = `https://carqueryapi.com/api/0.3/?cmd=getTrims&year=${encodeURIComponent(year)}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&callback=data`
   const res = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; fuel-log/1.0)' },
     signal: AbortSignal.timeout(10000),
@@ -106,20 +106,50 @@ async function lookupWithCarQuery(year: string, make: string, model: string, log
   }))
 }
 
+function parseFuelEconomyMenuItems(xml: string): Array<{ id: string; label: string }> {
+  const menuItems = Array.from(xml.matchAll(/<menuItem>([\s\S]*?)<\/menuItem>/gi), m => m[1])
+  const out: Array<{ id: string; label: string }> = []
+  for (let i = 0; i < menuItems.length; i++) {
+    const chunk = menuItems[i]
+    const label = chunk.match(/<text>([\s\S]*?)<\/text>/i)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim() ?? ''
+    const id = chunk.match(/<value>([\s\S]*?)<\/value>/i)?.[1]?.replace(/<!\[CDATA\[|\]\]>/g, '').trim() ?? `fueleconomy-${i}`
+    if (!label) continue
+    out.push({ id, label })
+  }
+  return out
+}
+
 async function lookupWithFuelEconomy(year: string, make: string, model: string, logPrefix: string): Promise<TrimCandidate[]> {
-  const url = `https://www.fueleconomy.gov/ws/rest/vehicle/menu/options?year=${encodeURIComponent(year)}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`
-  const res = await fetch(url, { signal: AbortSignal.timeout(10000) })
+  const modelsUrl = `https://www.fueleconomy.gov/ws/rest/vehicle/menu/model?year=${encodeURIComponent(year)}&make=${encodeURIComponent(make)}`
+  const modelRes = await fetch(modelsUrl, { signal: AbortSignal.timeout(10000) })
+  if (!modelRes.ok) {
+    console.error(`${logPrefix} fueleconomy model non-200`, { status: modelRes.status })
+    return []
+  }
+  const modelsXml = await modelRes.text()
+  const modelItems = parseFuelEconomyMenuItems(modelsXml)
+  if (modelItems.length === 0) {
+    console.warn(`${logPrefix} fueleconomy model list empty`, { year, make, model })
+    return []
+  }
+
+  const target = model.toLowerCase()
+  const matchedModel =
+    modelItems.find(m => m.label.toLowerCase() === target) ??
+    modelItems.find(m => m.label.toLowerCase().includes(target)) ??
+    modelItems[0]
+
+  const optionsUrl = `https://www.fueleconomy.gov/ws/rest/vehicle/menu/options?year=${encodeURIComponent(year)}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(matchedModel.label)}`
+  const res = await fetch(optionsUrl, { signal: AbortSignal.timeout(10000) })
   if (!res.ok) {
-    console.error(`${logPrefix} fueleconomy non-200`, { status: res.status })
+    console.error(`${logPrefix} fueleconomy options non-200`, { status: res.status, modelUsed: matchedModel.label })
     return []
   }
   const xml = await res.text()
-  const menuItems = Array.from(xml.matchAll(/<menuItem>([\s\S]*?)<\/menuItem>/g), m => m[1])
+  const menuItems = parseFuelEconomyMenuItems(xml)
   const candidates: TrimCandidate[] = []
   for (let i = 0; i < menuItems.length; i++) {
-    const chunk = menuItems[i]
-    const label = chunk.match(/<text>([\s\S]*?)<\/text>/)?.[1]?.trim() ?? ''
-    const id = chunk.match(/<value>([\s\S]*?)<\/value>/)?.[1]?.trim() ?? `fueleconomy-${i}`
+    const { label, id } = menuItems[i]
     if (!label) continue
     candidates.push({
       id,
